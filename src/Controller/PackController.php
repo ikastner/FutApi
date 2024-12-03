@@ -20,6 +20,11 @@ class PackController extends AbstractController
         $pack = new Pack();
         $pack->setName($data['name']);
         $pack->setPrice($data['price']);
+        $pack->setPrice($data['type']);
+
+//        $pack->setName($data['Argent']);
+//        //$pack->setPrice($data['price']);
+//        $pack->setType($data['Argent']);
 
         // Ajouter les joueurs au pack si fournis
         if (isset($data['players'])) {
@@ -37,7 +42,7 @@ class PackController extends AbstractController
         return new JsonResponse(['message' => 'Pack created successfully', 'pack_id' => $pack->getId()], JsonResponse::HTTP_CREATED);
     }
 
-    #[Route('/pack/{id}', name: 'get_pack', methods: ['GET'], requirements: ["id"=>"\d+"])]
+    #[Route('/pack/{id}', name: 'get_pack', requirements: ["id"=>"\d+"], methods: ['GET'])]
     public function getPack(int $id, EntityManagerInterface $entityManager): JsonResponse
     {
         $pack = $entityManager->getRepository(Pack::class)->find($id);
@@ -64,13 +69,14 @@ class PackController extends AbstractController
             'id' => $pack->getId(),
             'name' => $pack->getName(),
             'price' => $pack->getPrice(),
+            'type' => $pack->getType(),
             'players' => $playersArray,
         ];
 
         return new JsonResponse($packData);
     }
-    #[Route('/pack/random', name: 'generate_random_pack', methods: ['POST', 'GET'])]
-    public function generateRandomPack(EntityManagerInterface $entityManager): JsonResponse
+    #[Route('/pack/random/{type}', name: 'generate_random_pack', methods: ['POST', 'GET'])]
+    public function generateRandomPack(string $type,EntityManagerInterface $entityManager): JsonResponse
     {
         try {
             // Vérifier s'il y a des joueurs disponibles
@@ -83,6 +89,8 @@ class PackController extends AbstractController
             $pack = new Pack();
             $pack->setName('Random Pack');
             $pack->setPrice(rand(100, 1000));
+            $pack->setType($type);
+
 
             // Sélection aléatoire de joueurs
             shuffle($players);
@@ -113,6 +121,7 @@ class PackController extends AbstractController
                 'id' => $pack->getId(),
                 'name' => $pack->getName(),
                 'price' => $pack->getPrice(),
+                'type' => $pack->getType(),
                 'players' => $playersArray,
             ];
 

@@ -27,6 +27,9 @@ class Pack
     #[ORM\ManyToMany(targetEntity: SoccerPlayers::class, inversedBy: 'playersPack')]
     private Collection $players;
 
+    #[ORM\Column(length: 255)]
+    private ?string $type = null;
+
     public function __construct()
     {
         $this->players = new ArrayCollection();
@@ -67,6 +70,36 @@ class Pack
     public function getPlayers(): Collection
     {
         return $this->players;
+    }
+
+    public function getType(): ?string
+    {
+        return $this->type;
+    }
+
+    public function setType(string $type): static
+    {
+        $this->type = $type;
+
+        // Définir le prix en fonction du type de pack
+        switch ($type) {
+            case 'Bronze':
+                $this->price = 500;
+                break;
+            case 'Argent':
+                $this->price = 2500;
+                break;
+            case 'Or':
+                $this->price = 7500;
+                break;
+            case 'Icône':
+                $this->price = 15000;
+                break;
+            default:
+                throw new \InvalidArgumentException("Type de pack non valide : $type");
+        }
+
+        return $this;
     }
 
     public function addPlayer(SoccerPlayers $player): static
