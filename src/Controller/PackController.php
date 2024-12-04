@@ -75,28 +75,24 @@ class PackController extends AbstractController
 
         return new JsonResponse($packData);
     }
+    
     #[Route('/pack/random/{type}', name: 'generate_random_pack', methods: ['POST', 'GET'])]
     public function generateRandomPack(string $type,EntityManagerInterface $entityManager): JsonResponse
     {
         try {
-            // Vérifier s'il y a des joueurs disponibles
-            $players = $entityManager->getRepository(SoccerPlayers::class)->findAll();
+            // Récupérer les joueurs filtrés et triés depuis le repository
+            $players = $entityManager->getRepository(SoccerPlayers::class)->getFilteredPlayersByType($type);
 
             if (empty($players)) {
-                return new JsonResponse(['error' => 'No players available'], JsonResponse::HTTP_BAD_REQUEST);
+                return new JsonResponse(['error' => 'No players match the selected pack type'], JsonResponse::HTTP_BAD_REQUEST);
             }
-
+            
             $pack = new Pack();
-            $pack->setName('Random Pack');
-            $pack->setPrice(rand(100, 1000));
+            $pack->setName($type);
+            // $pack->setPrice(rand(100, 1000));
             $pack->setType($type);
 
-
-            // Sélection aléatoire de joueurs
-            shuffle($players);
-            $randomPlayers = array_slice($players, 0, rand(1, min(5, count($players))));
-
-            foreach ($randomPlayers as $player) {
+            foreach ($players as $player) {
                 $pack->addPlayer($player);
             }
 
@@ -132,5 +128,6 @@ class PackController extends AbstractController
                 'error' => 'An error occurred: ' . $e->getMessage()
             ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
+
     }
 }

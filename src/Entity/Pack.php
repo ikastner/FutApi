@@ -86,13 +86,13 @@ class Pack
             case 'Bronze':
                 $this->price = 500;
                 break;
-            case 'Argent':
+            case 'Silver':
                 $this->price = 2500;
                 break;
-            case 'Or':
+            case 'Gold':
                 $this->price = 7500;
                 break;
-            case 'Icône':
+            case 'Icon':
                 $this->price = 15000;
                 break;
             default:

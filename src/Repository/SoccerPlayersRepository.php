@@ -16,28 +16,28 @@ class SoccerPlayersRepository extends ServiceEntityRepository
         parent::__construct($registry, SoccerPlayers::class);
     }
 
-    //    /**
-    //     * @return SoccerPlayers[] Returns an array of SoccerPlayers objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('s.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Récupère les joueurs filtrés par type et triés par rating.
+     * 
+     * @param string $type Le type de pack (Golder, Silver, Bronze)
+     * 
+     * @return SoccerPlayers[] Tableau des joueurs filtrés et triés.
+     */
+    public function getFilteredPlayersByType(string $type)
+    {
+        // Définir les types autorisés pour chaque type de pack
+        $typeHierarchy = [
+            'Icon' => ['Icon','Gold', 'Silver', 'Bronze'],
+            'Gold' => ['Gold', 'Silver', 'Bronze'],
+            'Silver' => ['Silver', 'Bronze'],
+            'Bronze' => ['Bronze'],
+        ];
 
-    //    public function findOneBySomeField($value): ?SoccerPlayers
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $queryBuilder = $this->createQueryBuilder('p')
+            ->where('p.type IN (:types)')
+            ->setParameter('types', $typeHierarchy[$type] ?? [])
+            ->orderBy('p.rating', 'DESC'); // Trie par rating décroissant
+
+        return $queryBuilder->getQuery()->getResult();
+    }
 }

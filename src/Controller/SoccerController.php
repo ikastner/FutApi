@@ -8,7 +8,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
-
 class SoccerController extends AbstractController
 {
     #[Route('/soccerplayers/report', name: 'soccerplayers_report', methods: ['GET'])]
@@ -33,31 +32,37 @@ class SoccerController extends AbstractController
 
         return new JsonResponse($playersArray);
     }
-
+    
     #[Route('/soccerplayers/advanced-filter', name: 'soccerplayers_advanced_filter', methods: ['GET'])]
     public function advancedFilterSoccerPlayers(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $queryBuilder = $entityManager->getRepository(SoccerPlayers::class)->createQueryBuilder('p');
 
-        // Name partial match
+        // 1. Filtrer par nom (partiel, insensible à la casse)
         if ($name = $request->query->get('name')) {
             $queryBuilder->andWhere('LOWER(p.name) LIKE LOWER(:name)')->setParameter('name', '%'.$name.'%');
         }
 
-        // Club partial match (case-insensitive)
+        // 2. Filtrer par club (partiel, insensible à la casse)
         if ($club = $request->query->get('club')) {
             $queryBuilder->andWhere('LOWER(p.club) LIKE LOWER(:club)')->setParameter('club', '%'.$club.'%');
         }
 
-        // Exact matches for other fields
-        $exactFields = ['nation', 'rarity', 'type'];
-        foreach ($exactFields as $field) {
+        // 3. Filtres exacts ou multiples pour certains champs spécifiques
+        $multiSelectableFields = ['nation', 'rarity', 'type'];
+        foreach ($multiSelectableFields as $field) {
             if ($value = $request->query->get($field)) {
-                $queryBuilder->andWhere("p.$field = :$field")->setParameter($field, $value);
+                // Vérifier si plusieurs valeurs sont passées (séparées par des virgules)
+                $values = explode(',', $value);
+                if (count($values) > 1) {
+                    $queryBuilder->andWhere("p.$field IN (:$field)")->setParameter($field, $values);
+                } else {
+                    $queryBuilder->andWhere("p.$field = :$field")->setParameter($field, $value);
+                }
             }
         }
 
-        // Range queries for numerical fields
+        // 4. Requêtes de plage pour les champs numériques
         $rangeFields = [
             'rating' => ['min_rating', 'max_rating'],
             'price' => ['min_price', 'max_price'],
@@ -76,13 +81,13 @@ class SoccerController extends AbstractController
             }
         }
 
-        // Sorting
+        // 5. Tri des résultats
         if ($sortBy = $request->query->get('sort_by')) {
             $sortOrder = $request->query->get('sort_order', 'ASC');
             $queryBuilder->orderBy("p.$sortBy", $sortOrder);
         }
-
-        // Pagination
+ 
+        // 6. Pagination
         $page = max(1, $request->query->getInt('page', 1));
         $limit = max(1, $request->query->getInt('limit', 20));
         $offset = ($page - 1) * $limit;
@@ -107,7 +112,7 @@ class SoccerController extends AbstractController
             ];
         }, $players);
 
-        // Count total matching results
+        // Comptage du nombre total de résultats
         $countQueryBuilder = clone $queryBuilder;
         $totalResults = $countQueryBuilder
             ->select('COUNT(p)')
@@ -123,4 +128,5 @@ class SoccerController extends AbstractController
             'total' => $totalResults
         ]);
     }
+
 }
