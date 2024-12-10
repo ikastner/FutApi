@@ -64,7 +64,7 @@ class PackController extends AbstractController
                 'price' => $player->getPrice(),
             ];
         }
-
+ 
         $packData = [
             'id' => $pack->getId(),
             'name' => $pack->getName(),
@@ -77,31 +77,62 @@ class PackController extends AbstractController
     }
     
     #[Route('/pack/random/{type}', name: 'generate_random_pack', methods: ['POST', 'GET'])]
-    public function generateRandomPack(string $type,EntityManagerInterface $entityManager): JsonResponse
+    public function generateRandomPack(string $type, EntityManagerInterface $entityManager): JsonResponse
     {
         try {
-            // Récupérer les joueurs filtrés et triés depuis le repository
-            $players = $entityManager->getRepository(SoccerPlayers::class)->getFilteredPlayersByType($type);
+            // Récupérer tous les joueurs
+            $players = $entityManager->getRepository(SoccerPlayers::class)->findAll();
 
             if (empty($players)) {
+                return new JsonResponse(['error' => 'No players available'], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            // Filtrer les joueurs en fonction du type de pack
+            $typeHierarchy = [
+                'Icon' => ['Icon', 'Gold', 'Silver', 'Bronze'],
+                'Gold' => ['Gold', 'Silver', 'Bronze'],
+                'Silver' => ['Silver', 'Bronze'],
+                'Bronze' => ['Bronze'],
+            ];
+
+            $filteredPlayers = array_filter($players, function ($player) use ($type, $typeHierarchy) {
+                return in_array($player->getType(), $typeHierarchy[$type] ?? []);
+            });
+
+            if (empty($filteredPlayers)) {
                 return new JsonResponse(['error' => 'No players match the selected pack type'], JsonResponse::HTTP_BAD_REQUEST);
             }
-            
+
+            //Étape 1 : Calcul des probabilités basées sur la colonne `rate`
+            $totalRate = array_sum(array_map(fn($player) => $player->getRate(), $filteredPlayers));
+            $playersWithProbabilities = array_map(function ($player) use ($totalRate) {
+                return [
+                    'player' => $player,
+                    'probability' => $player->getRate() / $totalRate, // Probabilité normalisée
+                ];
+            }, $filteredPlayers);
+
+//
+
+            // Étape 3 : Sélection aléatoire pondérée (5 joueurs par pack)
+            $selectedPlayers = $this->selectWeightedRandom($playersWithProbabilities, 5);
+
+            // Créer le pack
             $pack = new Pack();
             $pack->setName($type);
-            // $pack->setPrice(rand(100, 1000));
             $pack->setType($type);
 
-            foreach ($players as $player) {
-                $pack->addPlayer($player);
+            foreach ($selectedPlayers as $player) {
+                $pack->addPlayer($player['player']);
             }
 
             $entityManager->persist($pack);
             $entityManager->flush();
 
-            $playersArray = [];
-            foreach ($pack->getPlayers() as $player) {
-                $playersArray[] = [
+            // Préparer les données du pack
+            $playersArray = array_map(function ($playerData) {
+                $player = $playerData['player'];
+                return [
                     'id' => $player->getId(),
                     'name' => $player->getName(),
                     'club' => $player->getClub(),
@@ -111,14 +142,14 @@ class PackController extends AbstractController
                     'type' => $player->getType(),
                     'price' => $player->getPrice(),
                 ];
-            }
+            }, $selectedPlayers);
 
             $packData = [
                 'id' => $pack->getId(),
                 'name' => $pack->getName(),
                 'price' => $pack->getPrice(),
                 'type' => $pack->getType(),
-                'players' => $playersArray,
+                'players' => $playersArray, // Sortie triée
             ];
 
             return new JsonResponse($packData, JsonResponse::HTTP_CREATED);
@@ -128,6 +159,32 @@ class PackController extends AbstractController
                 'error' => 'An error occurred: ' . $e->getMessage()
             ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
 
+    /**
+     * Sélection aléatoire pondérée.
+     */
+    private function selectWeightedRandom(array $playersWithProbabilities, int $count): array
+    {
+        $selected = [];
+        $totalProbability = array_sum(array_column($playersWithProbabilities, 'probability'));
+
+        while (count($selected) < $count && !empty($playersWithProbabilities)) {
+            $randomValue = mt_rand() / mt_getrandmax() * $totalProbability;
+            $cumulative = 0;
+
+            foreach ($playersWithProbabilities as $index => $playerData) {
+                $cumulative += $playerData['probability'];
+                if ($cumulative >= $randomValue) {
+                    $selected[] = $playerData;
+                    $totalProbability -= $playerData['probability'];
+                    unset($playersWithProbabilities[$index]);
+                    $playersWithProbabilities = array_values($playersWithProbabilities);
+                    break;
+                }
+            }
+        }
+
+        return $selected;
     }
 }
