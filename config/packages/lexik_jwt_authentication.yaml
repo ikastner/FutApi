@@ -1,0 +1,5 @@
+lexik_jwt_authentication:
+    secret_key: '%kernel.project_dir%/config/jwt/private.pem'
+    public_key: '%kernel.project_dir%/config/jwt/public.pem'
+    pass_phrase: 'votre-mot-de-passe-securise'
+    token_ttl: 3600 # Durée de validité du token en secondes (ici, 1 heure)

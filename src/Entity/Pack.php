@@ -21,6 +21,7 @@ class Pack
     #[ORM\Column]
     private ?int $price = null;
 
+
     /**
      * @var Collection<int, SoccerPlayers>
      */
