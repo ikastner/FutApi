@@ -163,6 +163,7 @@ class UserController extends AbstractController
         $playersArray = array_map(function($userPackPlayer) {
             $player = $userPackPlayer->getPlayer();
             return [
+                'idPackPlayer' => $userPackPlayer->getId(),
                 'id' => $player->getId(),
                 'name' => $player->getName(),
                 'club' => $player->getClub(),
@@ -193,7 +194,34 @@ class UserController extends AbstractController
     }
 
 
+    #[Route('/api/players/sell/{userPackPlayerId}', name: 'sell_player', methods: ['POST'])]
+    public function sellPlayer(Request $request, EntityManagerInterface $entityManager, UserRepository $userRepository, UserPackPlayerRepository $userPackPlayerRepository, int $userPackPlayerId): JsonResponse
+    {
+        // Récupérer l'ID utilisateur depuis les en-têtes
+        $userId = $request->headers->get('X-User-Id');
+        if (!$userId) {
+            return new JsonResponse(['error' => 'User ID is required'], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
+        // Récupérer l'utilisateur à partir de l'ID
+        $user = $userRepository->find($userId);
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Récupérer le joueur à partir de l'ID unique de user_pack_player
+        $userPackPlayer = $userPackPlayerRepository->find($userPackPlayerId);
+        if (!$userPackPlayer || $userPackPlayer->getUser()->getId() !== $user->getId()) {
+            return new JsonResponse(['error' => 'Player not found in user pack'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Logique pour vendre le joueur
+        $user->setCredits($user->getCredits() + $userPackPlayer->getPlayer()->getPrice());
+        $entityManager->remove($userPackPlayer);
+        $entityManager->flush();
+
+        return new JsonResponse(['message' => 'Player sold successfully'], JsonResponse::HTTP_OK);
+    }
 
 
 

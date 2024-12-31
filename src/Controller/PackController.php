@@ -48,10 +48,10 @@ class PackController extends AbstractController
 
         // Vérifier si l'utilisateur a suffisamment de crédits
         $packPrices = [
-            'Icon' => 15000,   // Prix pour le pack Icon
-            'Gold' => 500,    // Prix pour le pack Gold
-            'Silver' => 50,   // Prix pour le pack Silver
-            'Bronze' => 20,   // Prix pour le pack Bronze
+            'Icon' => 2000,   // Prix pour le pack Icon
+            'Gold' => 1200,    // Prix pour le pack Gold
+            'Silver' => 800,   // Prix pour le pack Silver
+            'Bronze' => 400,   // Prix pour le pack Bronze
         ];
 
         // Vérifier si le type de pack est valide
@@ -129,6 +129,7 @@ class PackController extends AbstractController
                 'price' => $pack->getPrice(),
                 'type' => $pack->getType(),
                 'players' => $playersArray,
+                'userCredits' => $user->getCredits(),
             ];
 
             return new JsonResponse($packData, JsonResponse::HTTP_CREATED);
