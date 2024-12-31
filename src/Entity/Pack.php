@@ -28,6 +28,9 @@ class Pack
     #[ORM\ManyToMany(targetEntity: SoccerPlayers::class, inversedBy: 'playersPack')]
     private Collection $players;
 
+    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'packs')]
+    private Collection $users;
+
     #[ORM\Column(length: 255)]
     private ?string $type = null;
 
@@ -112,10 +115,14 @@ class Pack
         return $this;
     }
 
+
+
     public function removePlayer(SoccerPlayers $player): static
     {
         $this->players->removeElement($player);
 
         return $this;
     }
+
+
 }
