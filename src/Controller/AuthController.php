@@ -56,7 +56,8 @@ class AuthController extends AbstractController
                 'id' => $user->getId(),
                 'username' => $user->getUsername(),
                 'roles' => $user->getRoles(),
-                'api_token' => $user->getApiToken() // Retour du token API
+                'api_token' => $user->getApiToken(),
+                'credit' => $user->getCredits()
             ]
         ]);
     }
@@ -88,7 +89,8 @@ class AuthController extends AbstractController
             'user' => [
                 'id' => $user->getId(),
                 'username' => $user->getUsername(),
-                'roles' => $user->getRoles()
+                'roles' => $user->getRoles(),
+                'credit' => $user->getCredits()
             ]
         ]);
     }
