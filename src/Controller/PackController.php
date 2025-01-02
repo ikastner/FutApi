@@ -64,7 +64,7 @@ class PackController extends AbstractController
 
         // Vérifier si l'utilisateur a suffisamment de crédits
         if ($user->getCredits() < $packPrice) {
-            return new JsonResponse(['error' => 'Insufficient credits to open the pack'], JsonResponse::HTTP_BAD_REQUEST);
+            return new JsonResponse(['error' => 'Crédits insuffisants pour ouvrir le pack'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         // Logique pour générer le pack, mettre à jour les crédits, etc.

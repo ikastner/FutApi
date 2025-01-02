@@ -67,6 +67,7 @@ class UserController extends AbstractController
             'id' => $user->getId(),
             'username' => $user->getUsername(),
             'credits' => $user->getCredits(),
+            'roles' => $user->getRoles(),
         ], JsonResponse::HTTP_OK);
     }
 
