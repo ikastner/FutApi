@@ -42,12 +42,12 @@ class SoccerController extends AbstractController
 
         // 1. Filtrer par nom (partiel, insensible à la casse)
         if ($name = $request->query->get('name')) {
-            $queryBuilder->andWhere('LOWER(p.name) LIKE LOWER(:name)')->setParameter('name', '%'.$name.'%');
+            $queryBuilder->andWhere('LOWER(p.name) LIKE LOWER(:name)')->setParameter('name', '%' . $name . '%');
         }
 
         // 2. Filtrer par club (partiel, insensible à la casse)
         if ($club = $request->query->get('club')) {
-            $queryBuilder->andWhere('LOWER(p.club) LIKE LOWER(:club)')->setParameter('club', '%'.$club.'%');
+            $queryBuilder->andWhere('LOWER(p.club) LIKE LOWER(:club)')->setParameter('club', '%' . $club . '%');
         }
 
         // 3. Filtres exacts ou multiples pour certains champs spécifiques
@@ -100,7 +100,7 @@ class SoccerController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        $playersArray = array_map(function($player) {
+        $playersArray = array_map(function ($player) {
             return [
                 'id' => $player->getId(),
                 'name' => $player->getName(),
@@ -150,11 +150,11 @@ class SoccerController extends AbstractController
 
         // Filtres similaires mais adaptés à la nouvelle structure
         if ($name = $request->query->get('name')) {
-            $queryBuilder->andWhere('LOWER(p.name) LIKE LOWER(:name)')->setParameter('name', '%'.$name.'%');
+            $queryBuilder->andWhere('LOWER(p.name) LIKE LOWER(:name)')->setParameter('name', '%' . $name . '%');
         }
 
         if ($club = $request->query->get('club')) {
-            $queryBuilder->andWhere('LOWER(p.club) LIKE LOWER(:club)')->setParameter('club', '%'.$club.'%');
+            $queryBuilder->andWhere('LOWER(p.club) LIKE LOWER(:club)')->setParameter('club', '%' . $club . '%');
         }
 
         // Filtres multi-valeurs
@@ -211,7 +211,7 @@ class SoccerController extends AbstractController
             ->getResult();
 
         // Transformer les résultats
-        $playersArray = array_map(function($userPackPlayer) {
+        $playersArray = array_map(function ($userPackPlayer) {
             $player = $userPackPlayer->getPlayer();
             $pack = $userPackPlayer->getPack();
             return [
@@ -256,8 +256,8 @@ class SoccerController extends AbstractController
         }
 
         // Pagination : récupérer page et limite depuis la requête
-        $page = (int) $request->query->get('page', 1);  // Valeur par défaut : page 1
-        $limit = (int) $request->query->get('limit', 20); // Valeur par défaut : 20 joueurs
+        $page = (int)$request->query->get('page', 1);  // Valeur par défaut : page 1
+        $limit = (int)$request->query->get('limit', 20); // Valeur par défaut : 20 joueurs
 
         // Calcul des offsets pour la pagination
         $offset = ($page - 1) * $limit;
@@ -291,6 +291,116 @@ class SoccerController extends AbstractController
             'players' => $playersArray,
             'total' => $totalPlayers
         ]);
+    }
+
+    #[Route('/api/soccerplayers/update/{id}', name: 'soccerplayers_update_one', methods: ['POST'])]
+    public function updateSoccerPlayer(int $id, Request $request, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $player = $entityManager->getRepository(SoccerPlayers::class)->find($id);
+
+        if (!$player) {
+            return new JsonResponse(['error' => 'Player not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['name'])) {
+            $player->setName($data['name']);
+        }
+        if (isset($data['club'])) {
+            $player->setClub($data['club']);
+        }
+        if (isset($data['nation'])) {
+            $player->setNation($data['nation']);
+        }
+        if (isset($data['rating'])) {
+            $player->setRating($data['rating']);
+        }
+        if (isset($data['rarity'])) {
+            $player->setRarity($data['rarity']);
+        }
+        if (isset($data['type'])) {
+            $player->setType($data['type']);
+        }
+        if (isset($data['price'])) {
+            $player->setPrice($data['price']);
+        }
+        if (isset($data['rate'])) {
+            $player->setRate($data['rate']);
+        }
+
+        $entityManager->persist($player);
+        $entityManager->flush();
+
+        return new JsonResponse(['message' => 'Player updated successfully']);
+    }
+
+    #[Route('/api/soccerplayers/delete/{id}', name: 'soccerplayers_delete_one', methods: ['DELETE'])]
+    public function deleteSoccerPlayer(int $id, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $player = $entityManager->getRepository(SoccerPlayers::class)->find($id);
+
+        if (!$player) {
+            return new JsonResponse(['error' => 'Player not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Delete related entries in UserPackPlayer
+        $userPackPlayers = $entityManager->getRepository(UserPackPlayer::class)->findBy(['player' => $player]);
+        foreach ($userPackPlayers as $userPackPlayer) {
+            $entityManager->remove($userPackPlayer);
+        }
+
+        // Delete the player
+        $entityManager->remove($player);
+        $entityManager->flush();
+
+        return new JsonResponse(['message' => 'Player and related entries deleted successfully']);
+    }
+
+        #[Route('/api/soccerplayers/create', name: 'soccerplayers_create', methods: ['POST'])]
+        public function createSoccerPlayer(Request $request, EntityManagerInterface $entityManager): JsonResponse
+        {
+            $data = json_decode($request->getContent(), true);
+
+            $player = new SoccerPlayers();
+            if (isset($data['name'])) {
+                $player->setName($data['name']);
+            }
+            if (isset($data['club'])) {
+                $player->setClub($data['club']);
+            }
+            if (isset($data['nation'])) {
+                $player->setNation($data['nation']);
+            }
+            if (isset($data['rating'])) {
+                $player->setRating($data['rating']);
+            }
+            if (isset($data['rarity'])) {
+                $player->setRarity($data['rarity']);
+            }
+            if (isset($data['type'])) {
+                $player->setType($data['type']);
+            }
+            if (isset($data['price'])) {
+                $player->setPrice($data['price']);
+            }
+            if (isset($data['rate'])) {
+                $player->setRate($data['rate']);
+            }
+
+            $entityManager->persist($player);
+            $entityManager->flush();
+
+            return new JsonResponse(['message' => 'Player created successfully'], JsonResponse::HTTP_CREATED);
+        }
+
+    #[Route('/api/soccerplayers/check-name', name: 'soccerplayers_check_name', methods: ['GET'])]
+    public function checkPlayerName(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $name = $request->query->get('name');
+        $player = $entityManager->getRepository(SoccerPlayers::class)->findOneBy(['name' => $name]);
+
+        return new JsonResponse(['exists' => $player !== null]);
     }
 
 }
